@@ -70,7 +70,7 @@ class DelegateCollection <DelegateType:AnyObject> {
 
 
 protocol ManagerWithDelegates {
-    typealias DelegateType:AnyObject
+    associatedtype DelegateType:AnyObject
     
     var delegateCollection:DelegateCollection<DelegateType> { get }
 }
