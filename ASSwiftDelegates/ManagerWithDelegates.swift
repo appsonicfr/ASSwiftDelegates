@@ -25,41 +25,78 @@
 import Foundation
 
 
+protocol DelegateWrapperType : Equatable {
+    associatedtype DelegateType
+    
+    var delegate:DelegateType? { get }
+}
 
-class DelegateWrapper<T:AnyObject> : Equatable {
-    weak var delegate:T?
+
+class DelegateWrapper<T> : DelegateWrapperType {
+    fileprivate weak var _delegate:AnyObject?
+    
+    var delegate:T? {
+        get {
+            if let tmp = _delegate {
+                return tmp as? T
+            }
+            return nil
+        }
+    }
+    
     
     required init (delegate:T) {
-        self.delegate = delegate
+        _delegate = delegate as AnyObject
     }
 }
 
+
 func ==<T> (wrapper1:DelegateWrapper<T>, wrapper2:DelegateWrapper<T>) -> Bool {
-    return wrapper1.delegate === wrapper2.delegate
+    return wrapper1._delegate === wrapper2._delegate
 }
 
 
-class DelegateCollection <DelegateType:AnyObject> {
+extension Collection where Iterator.Element:DelegateWrapperType {
+    func index (of element:Iterator.Element.DelegateType) ->  Self.Index? {
+        let result = self.index(where: { (wrapper) -> Bool in
+            if let delegate = wrapper.delegate, (delegate as AnyObject) === (element as AnyObject) {
+                return true
+            }
+            return false
+        })
+        
+        return result
+    }
+}
+
+
+class DelegateCollection <DelegateType> {
     var weakDelegates:[DelegateWrapper<DelegateType>] = []
     
     
-    func remove (delegate:DelegateType) {
-        let tmpWrapper = DelegateWrapper<DelegateType>(delegate: delegate)
-        guard let index = weakDelegates.indexOf (tmpWrapper) else {
+    func remove (_ delegate:DelegateType) {
+        guard let index = weakDelegates.index(of: delegate) else {
             return
         }
-        weakDelegates.removeAtIndex (index)
+        weakDelegates.remove (at: index)
     }
     
     
-    func add (delegate:DelegateType) {
-        weakDelegates.append(DelegateWrapper<DelegateType>(delegate: delegate))
+    func add (_ delegate:DelegateType) {
+        guard weakDelegates.index(of: delegate) == nil else {
+            return
+        }
+        
+        let wrapper = DelegateWrapper(delegate: delegate)
+        weakDelegates.append(wrapper)
     }
     
-    func fire (action:(DelegateType)->Void) {
-        for (index, wrapper) in weakDelegates.enumerate() {
+    func fire (_ action:(DelegateType)->Void) {
+        for wrapper in weakDelegates {
             guard let delegate = wrapper.delegate else {
-                weakDelegates.removeAtIndex(index)
+                if let index = weakDelegates.index (of: wrapper) {
+                    weakDelegates.remove(at: index)
+                }
                 continue
             }
             
@@ -70,19 +107,18 @@ class DelegateCollection <DelegateType:AnyObject> {
 
 
 protocol ManagerWithDelegates {
-    associatedtype DelegateType:AnyObject
+    associatedtype DelegateType
     
     var delegateCollection:DelegateCollection<DelegateType> { get }
 }
 
 
 extension ManagerWithDelegates {
-    func addDelegate (delegate:DelegateType) {
+    func addDelegate (_ delegate:DelegateType) {
         delegateCollection.add(delegate)
     }
     
-    
-    func removeDelegate (delegate:DelegateType) {
+    func removeDelegate (_ delegate:DelegateType) {
         delegateCollection.remove(delegate)
     }
 }

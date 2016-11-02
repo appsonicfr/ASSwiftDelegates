@@ -28,36 +28,31 @@ import XCTest
 @testable import ASSwiftDelegates
 
 
+//Other declaration possible ...
+//protocol SampleManagerDelegate {
+//    var somethingDidChanged:(()->Void)? { get }
+//}
+
+@objc protocol SampleManagerDelegate {
+    @objc optional func somethingDidChanged() -> Void
+}
+
+
+class SampleManager : ManagerWithDelegates {
+    var delegateCollection = DelegateCollection<SampleManagerDelegate> ()
+    
+    func doBusinessThing () {
+        //...
+        delegateCollection.fire() {
+            delegate in
+            delegate.somethingDidChanged?()
+        }
+        //...
+    }
+}
 
 
 class ASSwiftDelegatesTests: XCTestCase {
-    
-    class SampleManagerDelegate {
-        var somethingDidChanged:(() -> Void)?
-        var deinitExpectation:XCTestExpectation?
-        
-        init (deinitExpectation:XCTestExpectation?) {
-            self.deinitExpectation = deinitExpectation
-        }
-        
-        deinit {
-            deinitExpectation?.fulfill()
-        }
-    }
-    
-    class SampleManager : ManagerWithDelegates {
-        var delegateCollection = DelegateCollection<SampleManagerDelegate> ()
-        
-        func doBusinessThing () {
-            //...
-            delegateCollection.fire() {
-                delegate in
-                delegate.somethingDidChanged?()
-            }
-            //...
-        }
-    }
-    
     
     override func setUp() {
         super.setUp()
@@ -70,10 +65,28 @@ class ASSwiftDelegatesTests: XCTestCase {
     }
     
     
-    func createDelegate (action:()->Void) -> SampleManagerDelegate {
-        let deinitExpectation = self.expectationWithDescription("deinit")
-        let delegate = SampleManagerDelegate(deinitExpectation: deinitExpectation)
-        delegate.somethingDidChanged = {action ()}
+    class MySampleManagerDelegate : SampleManagerDelegate {
+        var action:(() -> Void)?
+        var deinitExpectation:XCTestExpectation?
+        
+        init (deinitExpectation:XCTestExpectation?, action:@escaping ()->Void) {
+            self.deinitExpectation = deinitExpectation
+            self.action = action
+        }
+        
+        @objc func somethingDidChanged() {
+            action? ()
+        }
+        
+        deinit {
+            deinitExpectation?.fulfill()
+        }
+    }
+    
+    
+    func createDelegate (_ action:@escaping ()->Void) -> SampleManagerDelegate {
+        let deinitExpectation = self.expectation(description: "deinit")
+        let delegate = MySampleManagerDelegate(deinitExpectation: deinitExpectation, action:action)
         
         return delegate
     }
@@ -83,7 +96,7 @@ class ASSwiftDelegatesTests: XCTestCase {
         do {
             let sampleManager = SampleManager ()
             
-            let fireExpectation = self.expectationWithDescription("fire")
+            let fireExpectation = self.expectation(description: "fire")
             
             let delegate = self.createDelegate () { fireExpectation.fulfill () }
             let weakTest = {
@@ -100,7 +113,7 @@ class ASSwiftDelegatesTests: XCTestCase {
             sampleManager.doBusinessThing()
         }
         
-        waitForExpectationsWithTimeout(1, handler: nil)
+        waitForExpectations(timeout: 1, handler: nil)
     }
     
 }

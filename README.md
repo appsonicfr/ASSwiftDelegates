@@ -1,6 +1,7 @@
 # ASSwiftDelegates --}{:
 This repository is a community opened solution to this question : How well implement delegates design pattern in Swift ? 
 
+Updated for Swift 3.0 and test on Xcode 8.1
 
 ##Motivations
 
@@ -41,6 +42,8 @@ When times come to make an object which manage multiple delegates, things become
 
 ##Proposed solution
 
+As in Swift 3 everything can be cast in AnyObject, things become easier.
+
 Your class only have to conform to the protocol `ManagerWithDelegates` and automatically get the following methods :
 
 ```
@@ -49,7 +52,7 @@ func removeDelegate (delegate:DelegateType)
 func fire (action:(DelegateType)->Void) 
 ```
 
-The code you need to wirte is as little as possible :
+The code you need to write is as little as possible :
 
 ```
 class LoginManagerDelegate {
