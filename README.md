@@ -1,7 +1,7 @@
 # ASSwiftDelegates --}{:
 This repository is a community opened solution to this question : How well implement delegates design pattern in Swift ? 
 
-Updated for Swift 3.0 and test on Xcode 8.1
+Updated for Swift 4.1 and test on Xcode 9.4.1
 
 ##Motivations
 
